@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">智能伴随闹钟</string>
+    <string name="add_alarm">添加</string>
+    <string name="no_alarms">还没有闹钟，点击右下角 + 新建</string>
+    <string name="snooze_10m">推迟10分钟</string>
+    <string name="dismiss">我知道了</string>
+</resources>
