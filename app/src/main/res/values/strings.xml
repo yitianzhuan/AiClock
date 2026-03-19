@@ -1,7 +1,12 @@
 <resources>
     <string name="app_name">智能伴随闹钟</string>
     <string name="add_alarm">添加</string>
+    <string name="history">历史</string>
     <string name="no_alarms">还没有闹钟，点击右下角 + 新建</string>
     <string name="snooze_10m">推迟10分钟</string>
     <string name="dismiss">我知道了</string>
+    <string name="show_version_info">查看版本信息</string>
+    <string name="version_info_title">版本信息</string>
+    <string name="version_info_message">%1$s\n版本 %2$s (%3$d)</string>
+    <string name="version_info_confirm">知道了</string>
 </resources>

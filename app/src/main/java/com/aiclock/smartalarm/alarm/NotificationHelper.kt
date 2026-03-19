@@ -13,12 +13,16 @@ import com.aiclock.smartalarm.model.Alarm
 import com.aiclock.smartalarm.ui.MainActivity
 
 object NotificationHelper {
+    private val ACTIVE_VIBRATION_PATTERN = longArrayOf(0, 300, 240, 350)
+    private const val LEGACY_ACTIVE_CHANNEL = "active_alarm"
+
     fun ensureChannels(context: Context) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
             return
         }
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        manager.deleteNotificationChannel(LEGACY_ACTIVE_CHANNEL)
 
         val active = NotificationChannel(
             AlarmConstants.CHANNEL_ACTIVE,
@@ -26,7 +30,8 @@ object NotificationHelper {
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "Triggers when phone is in active use"
-            enableVibration(false)
+            enableVibration(true)
+            vibrationPattern = ACTIVE_VIBRATION_PATTERN
             setSound(null, null)
             lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
         }

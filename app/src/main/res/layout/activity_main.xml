@@ -6,6 +6,7 @@
     android:background="@drawable/bg_app_gradient">
 
     <LinearLayout
+        android:id="@+id/mainContent"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
@@ -35,38 +36,28 @@
                     android:layout_weight="1"
                     android:orientation="vertical">
 
-                    <LinearLayout
-                        android:layout_width="match_parent"
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:fontFamily="sans-serif-medium"
+                        android:letterSpacing="0.18"
+                        android:text="SMART MODE"
+                        android:textColor="@color/primary"
+                        android:textSize="11sp" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="sans-serif-medium"
-                            android:letterSpacing="0.18"
-                            android:text="SMART MODE"
-                            android:textColor="@color/primary"
-                            android:textSize="11sp" />
-
-                        <Space
-                            android:layout_width="0dp"
-                            android:layout_height="1dp"
-                            android:layout_weight="1" />
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/historyBtn"
-                            style="@style/Widget.SmartAlarm.GhostButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:paddingStart="14dp"
-                            android:paddingEnd="14dp"
-                            android:text="历史"
-                            app:icon="@drawable/ic_history_tech"
-                            app:iconGravity="textStart"
-                            app:iconPadding="8dp" />
-                    </LinearLayout>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/historyBtn"
+                        style="@style/Widget.SmartAlarm.GhostButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:layout_marginTop="10dp"
+                        android:paddingStart="14dp"
+                        android:paddingEnd="14dp"
+                        android:text="@string/history"
+                        app:icon="@drawable/ic_history_tech"
+                        app:iconGravity="textStart"
+                        app:iconPadding="8dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -116,17 +107,23 @@
                 </LinearLayout>
 
                 <FrameLayout
+                    android:id="@+id/appInfoIconButton"
                     android:layout_width="92dp"
                     android:layout_height="92dp"
                     android:layout_marginStart="18dp"
                     android:background="@drawable/bg_surface_panel"
+                    android:clickable="true"
+                    android:contentDescription="@string/show_version_info"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackgroundBorderless"
                     android:padding="10dp">
 
                     <ImageView
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:alpha="0.96"
-                        android:contentDescription="@string/app_name"
+                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
                         android:src="@drawable/ic_launcher_foreground" />
                 </FrameLayout>
             </LinearLayout>

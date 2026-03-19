@@ -12,10 +12,15 @@ import android.provider.OpenableColumns
 import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
+import androidx.core.view.updatePaddingRelative
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.aiclock.smartalarm.R
@@ -35,9 +40,11 @@ class MainActivity : ComponentActivity() {
     private lateinit var alarmStore: AlarmStore
     private lateinit var scheduler: AlarmScheduler
     private lateinit var adapter: AlarmAdapter
+    private lateinit var mainContent: View
     private lateinit var emptyStateCard: View
     private lateinit var alarmCountText: TextView
     private lateinit var alarmSummaryText: TextView
+    private lateinit var addAlarmFab: FloatingActionButton
 
     private var selectedRingtoneUri: String = defaultRingtoneUri()
     private var selectedRingtoneName: String = "系统默认闹钟"
@@ -77,9 +84,12 @@ class MainActivity : ComponentActivity() {
         scheduler = AlarmScheduler(this)
         NotificationHelper.ensureChannels(this)
 
+        mainContent = findViewById(R.id.mainContent)
         emptyStateCard = findViewById(R.id.emptyStateCard)
         alarmCountText = findViewById(R.id.alarmCountText)
         alarmSummaryText = findViewById(R.id.alarmSummaryText)
+        addAlarmFab = findViewById(R.id.addAlarmFab)
+        applyWindowInsets()
         setupList()
         setupActions()
 
@@ -127,11 +137,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun setupActions() {
-        findViewById<FloatingActionButton>(R.id.addAlarmFab).setOnClickListener {
+        addAlarmFab.setOnClickListener {
             openCreateFlow()
         }
         findViewById<MaterialButton>(R.id.historyBtn).setOnClickListener {
             startActivity(Intent(this, HistoryActivity::class.java))
+        }
+        findViewById<View>(R.id.appInfoIconButton).setOnClickListener {
+            showVersionInfo()
         }
     }
 
@@ -323,6 +336,55 @@ class MainActivity : ComponentActivity() {
 
     private fun defaultRingtoneUri(): String {
         return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM).toString()
+    }
+
+    private fun applyWindowInsets() {
+        val root = findViewById<View>(android.R.id.content)
+        val initialStart = mainContent.paddingStart
+        val initialTop = mainContent.paddingTop
+        val initialEnd = mainContent.paddingEnd
+        val fabLayoutParams = addAlarmFab.layoutParams as ViewGroup.MarginLayoutParams
+        val initialFabBottom = fabLayoutParams.bottomMargin
+        val initialFabEnd = fabLayoutParams.marginEnd
+
+        ViewCompat.setOnApplyWindowInsetsListener(root) { _, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            mainContent.updatePaddingRelative(
+                start = initialStart + systemBars.left,
+                top = initialTop + systemBars.top,
+                end = initialEnd + systemBars.right
+            )
+            addAlarmFab.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = initialFabBottom + systemBars.bottom
+                marginEnd = initialFabEnd + systemBars.right
+            }
+            insets
+        }
+        ViewCompat.requestApplyInsets(root)
+    }
+
+    private fun showVersionInfo() {
+        val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
+        } else {
+            @Suppress("DEPRECATION")
+            packageManager.getPackageInfo(packageName, 0)
+        }
+        val versionName = packageInfo.versionName?.takeIf { it.isNotBlank() } ?: "unknown"
+        val versionCode = packageInfo.longVersionCode
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.version_info_title)
+            .setMessage(
+                getString(
+                    R.string.version_info_message,
+                    getString(R.string.app_name),
+                    versionName,
+                    versionCode
+                )
+            )
+            .setPositiveButton(R.string.version_info_confirm, null)
+            .show()
     }
 
     private fun refreshList() {

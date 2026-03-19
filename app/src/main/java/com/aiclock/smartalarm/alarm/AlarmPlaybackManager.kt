@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationAttributes
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -19,6 +20,7 @@ object AlarmPlaybackManager {
     private const val VOLUME_STEP = 0.12f
     private const val VOLUME_STEP_MS = 1000L
     private const val ESCALATION_DELAY_MS = 3000L
+    private val VIBRATION_PATTERN = longArrayOf(0, 300, 240, 350)
 
     private var activeAlarmId: Int? = null
     private var mediaPlayer: MediaPlayer? = null
@@ -39,12 +41,10 @@ object AlarmPlaybackManager {
 
     private val escalationTask = object : Runnable {
         override fun run() {
-            val context = appContext ?: return
-            if (mediaPlayer == null || activeAlarmId == null) {
+            if (appContext == null || mediaPlayer == null || activeAlarmId == null) {
                 return
             }
 
-            startVibration(context)
             volumeTask.run()
         }
     }
@@ -65,6 +65,8 @@ object AlarmPlaybackManager {
         appContext = applicationContext
 
         player.setVolume(currentVolume, currentVolume)
+        cancelVibration(applicationContext)
+        startVibration(applicationContext)
         player.start()
         handler.removeCallbacks(volumeTask)
         handler.removeCallbacks(escalationTask)
@@ -117,30 +119,47 @@ object AlarmPlaybackManager {
     }
 
     private fun startVibration(context: Context) {
-        val pattern = longArrayOf(0, 300, 240, 350)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibrator = (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
-            vibrator.vibrate(VibrationEffect.createWaveform(pattern, 1))
-        } else {
-            @Suppress("DEPRECATION")
-            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createWaveform(pattern, 1))
-            } else {
+        val vibrator = getVibrator(context) ?: return
+        if (vibrator.hasVibrator() == false) {
+            return
+        }
+
+        val effect = VibrationEffect.createWaveform(VIBRATION_PATTERN, 1)
+        when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                vibrator.vibrate(
+                    effect,
+                    VibrationAttributes.createForUsage(VibrationAttributes.USAGE_ALARM)
+                )
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
                 @Suppress("DEPRECATION")
-                vibrator.vibrate(pattern, 1)
+                vibrator.vibrate(effect, alarmAudioAttributes())
+            }
+            else -> {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(VIBRATION_PATTERN, 1)
             }
         }
     }
 
     private fun cancelVibration(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibrator = (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
-            vibrator.cancel()
+        getVibrator(context)?.cancel()
+    }
+
+    private fun getVibrator(context: Context): Vibrator? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
         } else {
             @Suppress("DEPRECATION")
-            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            vibrator.cancel()
+            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
+    }
+
+    private fun alarmAudioAttributes(): AudioAttributes {
+        return AudioAttributes.Builder()
+            .setUsage(AudioAttributes.USAGE_ALARM)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .build()
     }
 }

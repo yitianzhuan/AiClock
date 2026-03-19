@@ -8,7 +8,7 @@ object AlarmConstants {
     const val EXTRA_ALARM_ID = "extra_alarm_id"
     const val EXTRA_FROM_SNOOZE = "extra_from_snooze"
 
-    const val CHANNEL_ACTIVE = "active_alarm"
+    const val CHANNEL_ACTIVE = "active_alarm_v2"
     const val CHANNEL_SILENT = "silent_alarm_log"
 
     const val SNOOZE_MINUTES = 10L
