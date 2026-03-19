@@ -38,12 +38,14 @@ class AlarmAdapter(
         private val timeText: TextView = itemView.findViewById(R.id.timeText)
         private val labelText: TextView = itemView.findViewById(R.id.labelText)
         private val repeatText: TextView = itemView.findViewById(R.id.repeatText)
+        private val ringtoneText: TextView = itemView.findViewById(R.id.ringtoneText)
         private val enableSwitch: MaterialSwitch = itemView.findViewById(R.id.enableSwitch)
 
         fun bind(alarm: Alarm) {
             timeText.text = String.format("%02d:%02d", alarm.hour, alarm.minute)
             labelText.text = if (alarm.label.isBlank()) "提醒" else alarm.label
             repeatText.text = if (alarm.repeatDays.isEmpty()) "单次" else alarm.repeatDays.toDisplayText()
+            ringtoneText.text = "铃声：${alarm.ringtoneName}"
 
             enableSwitch.setOnCheckedChangeListener(null)
             enableSwitch.isChecked = alarm.enabled
@@ -62,6 +64,9 @@ class AlarmAdapter(
 }
 
 private fun Set<Int>.toDisplayText(): String {
+    if (this.size == 7) {
+        return "每天"
+    }
     val names = listOf("一", "二", "三", "四", "五", "六", "日")
     val selected = this.sorted().mapNotNull { day ->
         val idx = day - 1

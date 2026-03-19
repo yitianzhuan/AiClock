@@ -38,6 +38,7 @@ class AlarmReceiver : BroadcastReceiver() {
 
         if (isScreenOn && isLocked == false) {
             NotificationHelper.showActiveAlarm(context, alarm)
+            AlarmPlaybackManager.start(context, alarm)
             historyStore.add(
                 AlarmHistoryEntry(
                     timestampMillis = System.currentTimeMillis(),

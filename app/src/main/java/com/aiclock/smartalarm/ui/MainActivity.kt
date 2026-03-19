@@ -4,12 +4,13 @@ import android.Manifest
 import android.app.TimePickerDialog
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.LayoutInflater
-import android.widget.CheckBox
+import android.view.View
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,14 +18,17 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.aiclock.smartalarm.R
+import com.aiclock.smartalarm.alarm.AlarmPlaybackManager
 import com.aiclock.smartalarm.alarm.AlarmScheduler
 import com.aiclock.smartalarm.alarm.NotificationHelper
 import com.aiclock.smartalarm.data.AlarmStore
 import com.aiclock.smartalarm.model.Alarm
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.snackbar.Snackbar
+import com.google.android.material.textfield.TextInputEditText
 
 class MainActivity : ComponentActivity() {
     private lateinit var alarmStore: AlarmStore
@@ -32,9 +36,35 @@ class MainActivity : ComponentActivity() {
     private lateinit var adapter: AlarmAdapter
     private lateinit var emptyText: TextView
 
+    private var selectedRingtoneUri: String = defaultRingtoneUri()
+    private var selectedRingtoneName: String = "系统默认闹钟"
+    private var pendingRingtoneNameView: TextView? = null
+    private var dayChipSyncing = false
+
     private val requestNotifications = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { }
+
+    private val pickSystemAudio = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode != RESULT_OK) {
+            return@registerForActivityResult
+        }
+
+        val data = result.data ?: return@registerForActivityResult
+        val uri = data.data ?: return@registerForActivityResult
+
+        val takeFlags = data.flags and
+            (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        runCatching {
+            contentResolver.takePersistableUriPermission(uri, takeFlags)
+        }
+
+        selectedRingtoneUri = uri.toString()
+        selectedRingtoneName = resolveRingtoneTitle(uri)
+        pendingRingtoneNameView?.text = selectedRingtoneName
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,7 +93,12 @@ class MainActivity : ComponentActivity() {
             onToggle = { alarm, checked ->
                 val updated = alarm.copy(enabled = checked)
                 alarmStore.upsert(updated)
-                if (checked) scheduler.schedule(updated) else scheduler.cancel(alarm.id)
+                if (checked) {
+                    scheduler.schedule(updated)
+                } else {
+                    scheduler.cancel(alarm.id)
+                    AlarmPlaybackManager.stop(this, alarm.id)
+                }
                 refreshList()
             },
             onLongPressDelete = { alarm ->
@@ -72,6 +107,7 @@ class MainActivity : ComponentActivity() {
                     .setMessage("确定删除 ${String.format("%02d:%02d", alarm.hour, alarm.minute)} 吗？")
                     .setPositiveButton("删除") { _, _ ->
                         scheduler.cancel(alarm.id)
+                        AlarmPlaybackManager.stop(this, alarm.id)
                         alarmStore.delete(alarm.id)
                         refreshList()
                     }
@@ -120,16 +156,18 @@ class MainActivity : ComponentActivity() {
 
     private fun showAlarmFormDialog(hour: Int, minute: Int, existing: Alarm?) {
         val formView = LayoutInflater.from(this).inflate(R.layout.dialog_alarm_form, null)
-        val labelInput = formView.findViewById<TextView>(R.id.labelInput)
-        labelInput.text = existing?.label.orEmpty()
+        val labelInput = formView.findViewById<TextInputEditText>(R.id.labelInput)
+        labelInput.setText(existing?.label.orEmpty())
 
-        setDayChecked(formView, R.id.dayMon, existing?.repeatDays?.contains(1) == true)
-        setDayChecked(formView, R.id.dayTue, existing?.repeatDays?.contains(2) == true)
-        setDayChecked(formView, R.id.dayWed, existing?.repeatDays?.contains(3) == true)
-        setDayChecked(formView, R.id.dayThu, existing?.repeatDays?.contains(4) == true)
-        setDayChecked(formView, R.id.dayFri, existing?.repeatDays?.contains(5) == true)
-        setDayChecked(formView, R.id.daySat, existing?.repeatDays?.contains(6) == true)
-        setDayChecked(formView, R.id.daySun, existing?.repeatDays?.contains(7) == true)
+        selectedRingtoneUri = existing?.ringtoneUri?.takeIf { it.isNotBlank() } ?: defaultRingtoneUri()
+        selectedRingtoneName = existing?.ringtoneName?.takeIf { it.isNotBlank() } ?: "系统默认闹钟"
+
+        val ringtoneNameText = formView.findViewById<TextView>(R.id.ringtoneNameText)
+        ringtoneNameText.text = selectedRingtoneName
+        pendingRingtoneNameView = ringtoneNameText
+
+        setupRepeatDayChips(formView, existing?.repeatDays ?: emptySet())
+        setupRingtoneActions(formView)
 
         val title = if (existing == null) "新建闹钟" else "编辑闹钟"
         MaterialAlertDialogBuilder(this)
@@ -143,7 +181,9 @@ class MainActivity : ComponentActivity() {
                     minute = minute,
                     label = labelInput.text?.toString()?.trim().orEmpty(),
                     repeatDays = repeatDays,
-                    enabled = existing?.enabled ?: true
+                    enabled = existing?.enabled ?: true,
+                    ringtoneUri = selectedRingtoneUri,
+                    ringtoneName = selectedRingtoneName
                 )
                 alarmStore.upsert(alarm)
                 if (alarm.enabled) {
@@ -157,26 +197,98 @@ class MainActivity : ComponentActivity() {
             .show()
     }
 
-    private fun setDayChecked(view: android.view.View, id: Int, checked: Boolean) {
-        view.findViewById<CheckBox>(id).isChecked = checked
+    private fun setupRingtoneActions(formView: View) {
+        formView.findViewById<MaterialButton>(R.id.choosePresetBtn).setOnClickListener {
+            val presets = listOf(
+                RingtonePreset("系统默认闹钟", RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM).toString()),
+                RingtonePreset("系统默认来电", RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE).toString()),
+                RingtonePreset("系统默认通知", RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION).toString())
+            )
+
+            val labels = presets.map { it.name }.toTypedArray()
+            MaterialAlertDialogBuilder(this)
+                .setTitle("选择预置铃声")
+                .setItems(labels) { _, index ->
+                    selectedRingtoneUri = presets[index].uri
+                    selectedRingtoneName = presets[index].name
+                    pendingRingtoneNameView?.text = selectedRingtoneName
+                }
+                .show()
+        }
+
+        formView.findViewById<MaterialButton>(R.id.chooseSystemFileBtn).setOnClickListener {
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+                .addCategory(Intent.CATEGORY_OPENABLE)
+                .setType("audio/*")
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                .addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+            pickSystemAudio.launch(intent)
+        }
     }
 
-    private fun collectRepeatDays(view: android.view.View): Set<Int> {
+    private fun setupRepeatDayChips(formView: View, existingDays: Set<Int>) {
+        val everydayChip = formView.findViewById<Chip>(R.id.dayEveryday)
+        val dayIds = listOf(
+            R.id.dayMon to 1,
+            R.id.dayTue to 2,
+            R.id.dayWed to 3,
+            R.id.dayThu to 4,
+            R.id.dayFri to 5,
+            R.id.daySat to 6,
+            R.id.daySun to 7
+        )
+
+        dayChipSyncing = true
+        dayIds.forEach { (id, day) ->
+            formView.findViewById<Chip>(id).isChecked = day in existingDays
+        }
+        everydayChip.isChecked = existingDays.size == 7
+        dayChipSyncing = false
+
+        everydayChip.setOnCheckedChangeListener { _, checked ->
+            if (dayChipSyncing) return@setOnCheckedChangeListener
+            dayChipSyncing = true
+            dayIds.forEach { (id, _) -> formView.findViewById<Chip>(id).isChecked = checked }
+            dayChipSyncing = false
+        }
+
+        dayIds.forEach { (id, _) ->
+            formView.findViewById<Chip>(id).setOnCheckedChangeListener { _, _ ->
+                if (dayChipSyncing) return@setOnCheckedChangeListener
+                val allChecked = dayIds.all { (chipId, _) -> formView.findViewById<Chip>(chipId).isChecked }
+                dayChipSyncing = true
+                everydayChip.isChecked = allChecked
+                dayChipSyncing = false
+            }
+        }
+    }
+
+    private fun collectRepeatDays(view: View): Set<Int> {
         val result = mutableSetOf<Int>()
-        if (view.findViewById<CheckBox>(R.id.dayMon).isChecked) result += 1
-        if (view.findViewById<CheckBox>(R.id.dayTue).isChecked) result += 2
-        if (view.findViewById<CheckBox>(R.id.dayWed).isChecked) result += 3
-        if (view.findViewById<CheckBox>(R.id.dayThu).isChecked) result += 4
-        if (view.findViewById<CheckBox>(R.id.dayFri).isChecked) result += 5
-        if (view.findViewById<CheckBox>(R.id.daySat).isChecked) result += 6
-        if (view.findViewById<CheckBox>(R.id.daySun).isChecked) result += 7
+        if (view.findViewById<Chip>(R.id.dayMon).isChecked) result += 1
+        if (view.findViewById<Chip>(R.id.dayTue).isChecked) result += 2
+        if (view.findViewById<Chip>(R.id.dayWed).isChecked) result += 3
+        if (view.findViewById<Chip>(R.id.dayThu).isChecked) result += 4
+        if (view.findViewById<Chip>(R.id.dayFri).isChecked) result += 5
+        if (view.findViewById<Chip>(R.id.daySat).isChecked) result += 6
+        if (view.findViewById<Chip>(R.id.daySun).isChecked) result += 7
         return result
+    }
+
+    private fun resolveRingtoneTitle(uri: Uri): String {
+        val ring = RingtoneManager.getRingtone(this, uri)
+        val title = ring?.getTitle(this)
+        return if (title.isNullOrBlank()) "系统音频" else title
+    }
+
+    private fun defaultRingtoneUri(): String {
+        return RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM).toString()
     }
 
     private fun refreshList() {
         val alarms = alarmStore.getAll()
         adapter.submitList(alarms)
-        emptyText.visibility = if (alarms.isEmpty()) android.view.View.VISIBLE else android.view.View.GONE
+        emptyText.visibility = if (alarms.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun ensureRuntimePermissions() {
@@ -204,3 +316,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
+
+private data class RingtonePreset(
+    val name: String,
+    val uri: String
+)

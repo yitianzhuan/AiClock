@@ -9,7 +9,9 @@ data class Alarm(
     val minute: Int,
     val label: String,
     val repeatDays: Set<Int> = emptySet(),
-    val enabled: Boolean = true
+    val enabled: Boolean = true,
+    val ringtoneUri: String = "",
+    val ringtoneName: String = "系统默认闹钟"
 ) {
     fun nextTriggerMillis(now: ZonedDateTime = ZonedDateTime.now()): Long {
         val base = now.withSecond(0).withNano(0)

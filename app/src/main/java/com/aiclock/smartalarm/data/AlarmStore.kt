@@ -50,6 +50,8 @@ class AlarmStore(context: Context) {
         .put("minute", alarm.minute)
         .put("label", alarm.label)
         .put("enabled", alarm.enabled)
+        .put("ringtoneUri", alarm.ringtoneUri)
+        .put("ringtoneName", alarm.ringtoneName)
         .put("repeatDays", JSONArray(alarm.repeatDays.sorted()))
 
     private fun fromJson(json: JSONObject): Alarm {
@@ -65,7 +67,9 @@ class AlarmStore(context: Context) {
             minute = json.getInt("minute"),
             label = json.optString("label", "提醒"),
             repeatDays = repeatDays,
-            enabled = json.optBoolean("enabled", true)
+            enabled = json.optBoolean("enabled", true),
+            ringtoneUri = json.optString("ringtoneUri", ""),
+            ringtoneName = json.optString("ringtoneName", "系统默认闹钟")
         )
     }
 

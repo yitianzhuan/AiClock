@@ -5,8 +5,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.media.AudioAttributes
-import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -22,21 +20,14 @@ object NotificationHelper {
 
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        val alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-        val attrs = AudioAttributes.Builder()
-            .setUsage(AudioAttributes.USAGE_ALARM)
-            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .build()
-
         val active = NotificationChannel(
             AlarmConstants.CHANNEL_ACTIVE,
             "Active Alarm",
             NotificationManager.IMPORTANCE_HIGH
         ).apply {
             description = "Triggers when phone is in active use"
-            enableVibration(true)
-            vibrationPattern = longArrayOf(0, 300, 250, 300)
-            setSound(alarmSound, attrs)
+            enableVibration(false)
+            setSound(null, null)
             lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
         }
 
@@ -80,6 +71,7 @@ object NotificationHelper {
             .setAutoCancel(false)
             .setOngoing(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setOnlyAlertOnce(true)
             .addAction(0, context.getString(R.string.dismiss), dismissIntent)
             .addAction(0, context.getString(R.string.snooze_10m), snoozeIntent)
             .build()
