@@ -15,23 +15,37 @@ import com.aiclock.smartalarm.model.Alarm
 
 object AlarmPlaybackManager {
     private const val MAX_VOLUME = 1f
-    private const val MIN_VOLUME = 0.08f
-    private const val STEP = 0.08f
-    private const val STEP_MS = 1500L
+    private const val INITIAL_VOLUME = 0.18f
+    private const val VOLUME_STEP = 0.12f
+    private const val VOLUME_STEP_MS = 1000L
+    private const val ESCALATION_DELAY_MS = 3000L
 
     private var activeAlarmId: Int? = null
     private var mediaPlayer: MediaPlayer? = null
-    private var currentVolume = MIN_VOLUME
+    private var currentVolume = INITIAL_VOLUME
+    private var appContext: Context? = null
     private val handler = Handler(Looper.getMainLooper())
 
     private val volumeTask = object : Runnable {
         override fun run() {
             val player = mediaPlayer ?: return
-            currentVolume = (currentVolume + STEP).coerceAtMost(MAX_VOLUME)
+            currentVolume = (currentVolume + VOLUME_STEP).coerceAtMost(MAX_VOLUME)
             player.setVolume(currentVolume, currentVolume)
             if (currentVolume < MAX_VOLUME) {
-                handler.postDelayed(this, STEP_MS)
+                handler.postDelayed(this, VOLUME_STEP_MS)
             }
+        }
+    }
+
+    private val escalationTask = object : Runnable {
+        override fun run() {
+            val context = appContext ?: return
+            if (mediaPlayer == null || activeAlarmId == null) {
+                return
+            }
+
+            startVibration(context)
+            volumeTask.run()
         }
     }
 
@@ -40,20 +54,21 @@ object AlarmPlaybackManager {
             stop(context, activeAlarmId)
         }
 
-        val player = runCatching { createPlayer(context, resolveUri(alarm)) }
-            .getOrElse { createPlayer(context, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)) }
+        val applicationContext = context.applicationContext
+        val player = runCatching { createPlayer(applicationContext, resolveUri(alarm)) }
+            .getOrElse { createPlayer(applicationContext, RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)) }
 
         mediaPlayer?.release()
         mediaPlayer = player
         activeAlarmId = alarm.id
-        currentVolume = MIN_VOLUME
+        currentVolume = INITIAL_VOLUME
+        appContext = applicationContext
 
         player.setVolume(currentVolume, currentVolume)
         player.start()
         handler.removeCallbacks(volumeTask)
-        handler.postDelayed(volumeTask, STEP_MS)
-
-        startVibration(context)
+        handler.removeCallbacks(escalationTask)
+        handler.postDelayed(escalationTask, ESCALATION_DELAY_MS)
     }
 
     fun stop(context: Context, alarmId: Int?) {
@@ -62,6 +77,7 @@ object AlarmPlaybackManager {
         }
 
         handler.removeCallbacks(volumeTask)
+        handler.removeCallbacks(escalationTask)
 
         mediaPlayer?.let { player ->
             runCatching {
@@ -74,7 +90,8 @@ object AlarmPlaybackManager {
 
         mediaPlayer = null
         activeAlarmId = null
-        currentVolume = MIN_VOLUME
+        currentVolume = INITIAL_VOLUME
+        appContext = null
         cancelVibration(context)
     }
 

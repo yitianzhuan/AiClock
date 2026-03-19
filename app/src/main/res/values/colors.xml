@@ -1,7 +1,23 @@
 <resources>
-    <color name="bg">#F6F8FC</color>
-    <color name="card">#FFFFFF</color>
-    <color name="primary">#1363DF</color>
-    <color name="text_primary">#141A2A</color>
-    <color name="text_secondary">#5E6678</color>
+    <color name="bg">#050A14</color>
+    <color name="bg_deep">#02060D</color>
+    <color name="surface">#0B1524</color>
+    <color name="surface_alt">#102033</color>
+    <color name="card">#0E1B2D</color>
+    <color name="card_strong">#132540</color>
+    <color name="panel">#0A1524</color>
+    <color name="input_surface">#09121F</color>
+    <color name="primary">#6BEFFF</color>
+    <color name="primary_dark">#25B8E3</color>
+    <color name="accent">#FF9B3D</color>
+    <color name="accent_soft">#FFC76E</color>
+    <color name="text_primary">#F3F7FF</color>
+    <color name="text_secondary">#96A8C3</color>
+    <color name="text_tertiary">#5B6A82</color>
+    <color name="line">#1C2F47</color>
+    <color name="line_strong">#31516D</color>
+    <color name="cyan_glow">#3ADFFF</color>
+    <color name="orange_glow">#FF8E2B</color>
+    <color name="history_active">#73F0FF</color>
+    <color name="history_muted">#8A98B2</color>
 </resources>

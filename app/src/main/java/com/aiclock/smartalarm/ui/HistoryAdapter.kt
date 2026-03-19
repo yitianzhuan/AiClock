@@ -1,10 +1,10 @@
 package com.aiclock.smartalarm.ui
 
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.aiclock.smartalarm.R
 import com.aiclock.smartalarm.model.AlarmHistoryEntry
@@ -39,15 +39,21 @@ class HistoryAdapter : RecyclerView.Adapter<HistoryAdapter.HistoryViewHolder>() 
         private val statusText: TextView = itemView.findViewById(R.id.statusText)
 
         fun bind(entry: AlarmHistoryEntry) {
-            titleText.text = "${entry.alarmTime} ${entry.label}"
+            titleText.text = if (entry.label.isBlank()) {
+                "${entry.alarmTime} · 智能提醒"
+            } else {
+                "${entry.alarmTime} · ${entry.label}"
+            }
             timeText.text = "触发时间：${formatter.format(Date(entry.timestampMillis))}"
 
             if (entry.status == "ACTIVE") {
                 statusText.text = "已提醒（你正在使用手机）"
-                statusText.setTextColor(Color.parseColor("#1363DF"))
+                statusText.setTextColor(ContextCompat.getColor(itemView.context, R.color.history_active))
+                statusText.setBackgroundResource(R.drawable.bg_history_badge_active)
             } else {
                 statusText.text = "静默忽略（你未使用手机）"
-                statusText.setTextColor(Color.parseColor("#8892A8"))
+                statusText.setTextColor(ContextCompat.getColor(itemView.context, R.color.history_muted))
+                statusText.setBackgroundResource(R.drawable.bg_history_badge_muted)
             }
         }
     }

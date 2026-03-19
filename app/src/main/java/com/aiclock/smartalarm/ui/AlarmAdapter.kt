@@ -43,13 +43,15 @@ class AlarmAdapter(
 
         fun bind(alarm: Alarm) {
             timeText.text = String.format("%02d:%02d", alarm.hour, alarm.minute)
-            labelText.text = if (alarm.label.isBlank()) "提醒" else alarm.label
-            repeatText.text = if (alarm.repeatDays.isEmpty()) "单次" else alarm.repeatDays.toDisplayText()
-            ringtoneText.text = "铃声：${alarm.ringtoneName}"
+            labelText.text = if (alarm.label.isBlank()) "智能提醒" else alarm.label
+            repeatText.text = if (alarm.repeatDays.isEmpty()) "单次提醒" else alarm.repeatDays.toDisplayText()
+            ringtoneText.text = alarm.ringtoneName
 
             enableSwitch.setOnCheckedChangeListener(null)
             enableSwitch.isChecked = alarm.enabled
             enableSwitch.setOnCheckedChangeListener { _, checked -> onToggle(alarm, checked) }
+
+            itemView.alpha = if (alarm.enabled) 1f else 0.72f
 
             itemView.setOnLongClickListener {
                 onLongPressDelete(alarm)

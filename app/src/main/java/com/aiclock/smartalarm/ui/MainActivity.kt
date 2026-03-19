@@ -8,6 +8,7 @@ import android.media.RingtoneManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.provider.Settings
 import android.view.LayoutInflater
 import android.view.View
@@ -34,7 +35,9 @@ class MainActivity : ComponentActivity() {
     private lateinit var alarmStore: AlarmStore
     private lateinit var scheduler: AlarmScheduler
     private lateinit var adapter: AlarmAdapter
-    private lateinit var emptyText: TextView
+    private lateinit var emptyStateCard: View
+    private lateinit var alarmCountText: TextView
+    private lateinit var alarmSummaryText: TextView
 
     private var selectedRingtoneUri: String = defaultRingtoneUri()
     private var selectedRingtoneName: String = "系统默认闹钟"
@@ -74,7 +77,9 @@ class MainActivity : ComponentActivity() {
         scheduler = AlarmScheduler(this)
         NotificationHelper.ensureChannels(this)
 
-        emptyText = findViewById(R.id.emptyText)
+        emptyStateCard = findViewById(R.id.emptyStateCard)
+        alarmCountText = findViewById(R.id.alarmCountText)
+        alarmSummaryText = findViewById(R.id.alarmSummaryText)
         setupList()
         setupActions()
 
@@ -162,6 +167,9 @@ class MainActivity : ComponentActivity() {
         selectedRingtoneUri = existing?.ringtoneUri?.takeIf { it.isNotBlank() } ?: defaultRingtoneUri()
         selectedRingtoneName = existing?.ringtoneName?.takeIf { it.isNotBlank() } ?: "系统默认闹钟"
 
+        val formTimeText = formView.findViewById<TextView>(R.id.formTimeText)
+        formTimeText.text = String.format("%02d:%02d", hour, minute)
+
         val ringtoneNameText = formView.findViewById<TextView>(R.id.ringtoneNameText)
         ringtoneNameText.text = selectedRingtoneName
         pendingRingtoneNameView = ringtoneNameText
@@ -170,7 +178,7 @@ class MainActivity : ComponentActivity() {
         setupRingtoneActions(formView)
 
         val title = if (existing == null) "新建闹钟" else "编辑闹钟"
-        MaterialAlertDialogBuilder(this)
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(title)
             .setView(formView)
             .setPositiveButton("保存") { _, _ ->
@@ -195,6 +203,9 @@ class MainActivity : ComponentActivity() {
             }
             .setNegativeButton("取消", null)
             .show()
+        dialog.setOnDismissListener {
+            pendingRingtoneNameView = null
+        }
     }
 
     private fun setupRingtoneActions(formView: View) {
@@ -276,9 +287,38 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun resolveRingtoneTitle(uri: Uri): String {
-        val ring = RingtoneManager.getRingtone(this, uri)
-        val title = ring?.getTitle(this)
-        return if (title.isNullOrBlank()) "系统音频" else title
+        val title = runCatching { RingtoneManager.getRingtone(this, uri)?.getTitle(this) }.getOrNull()
+        val hasProviderStylePrefix = title?.matches(Regex("^[a-z]{2,10}:[^\\s]+$")) == true
+        if (
+            title.isNullOrBlank() == false &&
+            title.contains('/') == false &&
+            title.startsWith("raw:") == false &&
+            hasProviderStylePrefix == false
+        ) {
+            return title
+        }
+
+        val fileName = contentResolver.query(
+            uri,
+            arrayOf(OpenableColumns.DISPLAY_NAME),
+            null,
+            null,
+            null
+        )?.use { cursor ->
+            val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (index >= 0 && cursor.moveToFirst()) {
+                cursor.getString(index)
+            } else {
+                null
+            }
+        }
+
+        return when {
+            fileName.isNullOrBlank() == false -> fileName
+            title.isNullOrBlank() == false -> title.substringAfterLast('/').removePrefix("raw:")
+            uri.lastPathSegment.isNullOrBlank() == false -> uri.lastPathSegment!!.substringAfterLast('/')
+            else -> "本地音频"
+        }
     }
 
     private fun defaultRingtoneUri(): String {
@@ -287,8 +327,16 @@ class MainActivity : ComponentActivity() {
 
     private fun refreshList() {
         val alarms = alarmStore.getAll()
+        val enabledCount = alarms.count { it.enabled }
         adapter.submitList(alarms)
-        emptyText.visibility = if (alarms.isEmpty()) View.VISIBLE else View.GONE
+        alarmCountText.text = String.format("%02d", alarms.size)
+        alarmSummaryText.text = when {
+            alarms.isEmpty() -> "点击右下角创建第一条提醒"
+            enabledCount == 0 -> "已创建 ${alarms.size} 个提醒，当前全部暂停"
+            enabledCount == alarms.size -> "${enabledCount} 个提醒已全部启用"
+            else -> "${enabledCount} 个提醒正在运行，其余已暂停"
+        }
+        emptyStateCard.visibility = if (alarms.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun ensureRuntimePermissions() {
