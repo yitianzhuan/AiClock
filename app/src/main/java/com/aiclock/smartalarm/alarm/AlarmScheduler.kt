@@ -6,20 +6,21 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.aiclock.smartalarm.model.Alarm
+import com.aiclock.smartalarm.ui.MainActivity
 import java.time.ZonedDateTime
 
 class AlarmScheduler(private val context: Context) {
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    fun schedule(alarm: Alarm) {
-        if (alarm.enabled == false) {
+    fun schedule(alarm: Alarm, now: ZonedDateTime = ZonedDateTime.now()) {
+        if (!alarm.enabled) {
             cancel(alarm.id)
             return
         }
 
-        val triggerAtMillis = alarm.nextTriggerMillis()
+        val triggerAtMillis = alarm.nextTriggerMillis(now)
         val pending = alarmPendingIntent(alarm.id, fromSnooze = false)
-        scheduleExact(triggerAtMillis, pending)
+        scheduleAlarmClock(triggerAtMillis, alarm.id, pending)
     }
 
     fun scheduleSnooze(alarmId: Int, minutesFromNow: Long) {
@@ -46,6 +47,22 @@ class AlarmScheduler(private val context: Context) {
             return
         }
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
+    }
+
+    private fun scheduleAlarmClock(triggerAtMillis: Long, alarmId: Int, pendingIntent: PendingIntent) {
+        val showIntent = PendingIntent.getActivity(
+            context,
+            alarmId + 400_000,
+            Intent(context, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .putExtra(AlarmConstants.EXTRA_ALARM_ID, alarmId),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        alarmManager.setAlarmClock(
+            AlarmManager.AlarmClockInfo(triggerAtMillis, showIntent),
+            pendingIntent
+        )
     }
 
     private fun alarmPendingIntent(alarmId: Int, fromSnooze: Boolean): PendingIntent {

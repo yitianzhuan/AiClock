@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">智能伴随闹钟</string>
+    <string name="app_name">智能闹钟</string>
     <string name="add_alarm">添加</string>
     <string name="history">历史</string>
     <string name="no_alarms">还没有闹钟，点击右下角 + 新建</string>

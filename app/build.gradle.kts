@@ -25,8 +25,8 @@ android {
         applicationId = "com.aiclock.smartalarm"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1012
-        versionName = "V1.012"
+        versionCode = 1015
+        versionName = "V1.015"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -71,4 +71,6 @@ dependencies {
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.activity:activity-ktx:1.9.0")
     implementation("androidx.recyclerview:recyclerview:1.3.2")
+
+    testImplementation("junit:junit:4.13.2")
 }

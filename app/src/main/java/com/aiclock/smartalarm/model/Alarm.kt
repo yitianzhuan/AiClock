@@ -13,26 +13,35 @@ data class Alarm(
     val ringtoneUri: String = "",
     val ringtoneName: String = "系统默认闹钟"
 ) {
-    fun nextTriggerMillis(now: ZonedDateTime = ZonedDateTime.now()): Long {
-        val base = now.withSecond(0).withNano(0)
+    fun nextTriggerDateTime(now: ZonedDateTime = ZonedDateTime.now()): ZonedDateTime {
+        val reference = now
+        val todayAtAlarmTime = reference
+            .withHour(hour)
+            .withMinute(minute)
+            .withSecond(0)
+            .withNano(0)
 
         if (repeatDays.isEmpty()) {
-            var target = base.withHour(hour).withMinute(minute)
-            if (target <= base) {
-                target = target.plusDays(1)
+            return if (todayAtAlarmTime.isAfter(reference)) {
+                todayAtAlarmTime
+            } else {
+                todayAtAlarmTime.plusDays(1)
             }
-            return target.toInstant().toEpochMilli()
         }
 
         for (offset in 0..7) {
-            val candidate = base.plusDays(offset.toLong()).withHour(hour).withMinute(minute)
+            val candidate = todayAtAlarmTime.plusDays(offset.toLong())
             val dayValue = candidate.dayOfWeek.toMondayBasedInt()
-            if (dayValue in repeatDays && candidate > base) {
-                return candidate.toInstant().toEpochMilli()
+            if (dayValue in repeatDays && candidate.isAfter(reference)) {
+                return candidate
             }
         }
 
-        return base.plusDays(1).withHour(hour).withMinute(minute).toInstant().toEpochMilli()
+        return todayAtAlarmTime.plusDays(1)
+    }
+
+    fun nextTriggerMillis(now: ZonedDateTime = ZonedDateTime.now()): Long {
+        return nextTriggerDateTime(now).toInstant().toEpochMilli()
     }
 }
 

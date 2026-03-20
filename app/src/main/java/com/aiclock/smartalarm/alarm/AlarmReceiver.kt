@@ -8,6 +8,7 @@ import android.os.PowerManager
 import com.aiclock.smartalarm.data.AlarmStore
 import com.aiclock.smartalarm.data.HistoryStore
 import com.aiclock.smartalarm.model.AlarmHistoryEntry
+import java.time.ZonedDateTime
 
 class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -28,6 +29,14 @@ class AlarmReceiver : BroadcastReceiver() {
         if (fromSnooze == false && alarm.enabled == false) {
             return
         }
+
+        val triggeredAt = ZonedDateTime.now()
+        val triggeredAtMillis = triggeredAt.toInstant().toEpochMilli()
+        val scheduler = AlarmScheduler(context)
+        if (fromSnooze == false && alarm.repeatDays.isNotEmpty()) {
+            scheduler.schedule(alarm, triggeredAt)
+        }
+
         val historyStore = HistoryStore(context)
 
         val power = context.getSystemService(Context.POWER_SERVICE) as PowerManager
@@ -41,7 +50,7 @@ class AlarmReceiver : BroadcastReceiver() {
             AlarmPlaybackManager.start(context, alarm)
             historyStore.add(
                 AlarmHistoryEntry(
-                    timestampMillis = System.currentTimeMillis(),
+                    timestampMillis = triggeredAtMillis,
                     alarmId = alarm.id,
                     alarmTime = String.format("%02d:%02d", alarm.hour, alarm.minute),
                     label = if (alarm.label.isBlank()) "提醒" else alarm.label,
@@ -52,7 +61,7 @@ class AlarmReceiver : BroadcastReceiver() {
             NotificationHelper.showSilentLog(context, alarm)
             historyStore.add(
                 AlarmHistoryEntry(
-                    timestampMillis = System.currentTimeMillis(),
+                    timestampMillis = triggeredAtMillis,
                     alarmId = alarm.id,
                     alarmTime = String.format("%02d:%02d", alarm.hour, alarm.minute),
                     label = if (alarm.label.isBlank()) "提醒" else alarm.label,
@@ -65,12 +74,9 @@ class AlarmReceiver : BroadcastReceiver() {
             return
         }
 
-        val scheduler = AlarmScheduler(context)
         if (alarm.repeatDays.isEmpty()) {
             store.upsert(alarm.copy(enabled = false))
             scheduler.cancel(alarm.id)
-        } else {
-            scheduler.schedule(alarm)
         }
     }
 }

@@ -11,7 +11,7 @@
         android:layout_height="match_parent"
         android:orientation="vertical"
         android:paddingStart="20dp"
-        android:paddingTop="24dp"
+        android:paddingTop="16dp"
         android:paddingEnd="20dp">
 
         <com.google.android.material.card.MaterialCardView
@@ -26,9 +26,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_hero_card"
-                android:gravity="center_vertical"
+                android:gravity="top"
                 android:orientation="horizontal"
-                android:padding="22dp">
+                android:padding="18dp">
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -45,42 +45,19 @@
                         android:textColor="@color/primary"
                         android:textSize="11sp" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/historyBtn"
-                        style="@style/Widget.SmartAlarm.GhostButton"
+                    <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_gravity="end"
                         android:layout_marginTop="10dp"
-                        android:paddingStart="14dp"
-                        android:paddingEnd="14dp"
-                        android:text="@string/history"
-                        app:icon="@drawable/ic_history_tech"
-                        app:iconGravity="textStart"
-                        app:iconPadding="8dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
                         android:fontFamily="sans-serif-medium"
-                        android:text="智能伴随闹钟"
+                        android:text="@string/app_name"
                         android:textColor="@color/text_primary"
-                        android:textSize="30sp" />
+                        android:textSize="27sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:lineSpacingExtra="2dp"
-                        android:text="只在你真正活跃使用手机时提醒，减少打扰，也保留准时感。"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="14sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="22dp"
+                        android:layout_marginTop="16dp"
                         android:fontFamily="sans-serif-medium"
                         android:text="已管理提醒"
                         android:textColor="@color/text_secondary"
@@ -94,7 +71,7 @@
                         android:letterSpacing="0.05"
                         android:text="00"
                         android:textColor="@color/text_primary"
-                        android:textSize="36sp" />
+                        android:textSize="34sp" />
 
                     <TextView
                         android:id="@+id/alarmSummaryText"
@@ -106,33 +83,54 @@
                         android:textSize="13sp" />
                 </LinearLayout>
 
-                <FrameLayout
-                    android:id="@+id/appInfoIconButton"
-                    android:layout_width="92dp"
-                    android:layout_height="92dp"
-                    android:layout_marginStart="18dp"
-                    android:background="@drawable/bg_surface_panel"
-                    android:clickable="true"
-                    android:contentDescription="@string/show_version_info"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackgroundBorderless"
-                    android:padding="10dp">
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical">
 
-                    <ImageView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:alpha="0.96"
-                        android:contentDescription="@null"
-                        android:importantForAccessibility="no"
-                        android:src="@drawable/ic_launcher_foreground" />
-                </FrameLayout>
+                    <FrameLayout
+                        android:id="@+id/appInfoIconButton"
+                        android:layout_width="84dp"
+                        android:layout_height="84dp"
+                        android:background="@drawable/bg_surface_panel"
+                        android:clickable="true"
+                        android:contentDescription="@string/show_version_info"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackgroundBorderless"
+                        android:padding="10dp">
+
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:alpha="0.96"
+                            android:contentDescription="@null"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_launcher_foreground" />
+                    </FrameLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/historyBtn"
+                        style="@style/Widget.SmartAlarm.GhostButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:minWidth="0dp"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:text="@string/history"
+                        app:icon="@drawable/ic_history_tech"
+                        app:iconGravity="textStart"
+                        app:iconPadding="8dp" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="16dp"
             android:fontFamily="sans-serif-medium"
             android:text="提醒清单"
             android:textColor="@color/text_primary"
@@ -141,7 +139,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="2dp"
             android:text="点击卡片编辑，长按即可删除"
             android:textColor="@color/text_secondary"
             android:textSize="13sp" />
@@ -150,7 +148,7 @@
             android:id="@+id/emptyStateCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:background="@drawable/bg_surface_panel"
             android:gravity="center"
             android:orientation="vertical"
@@ -171,7 +169,7 @@
             android:id="@+id/alarmList"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:layout_weight="1"
             android:clipToPadding="false"
             android:overScrollMode="never"
