@@ -20,6 +20,7 @@ class AlarmScheduler(private val context: Context) {
 
         val triggerAtMillis = alarm.nextTriggerMillis(now)
         val pending = alarmPendingIntent(alarm.id, fromSnooze = false)
+        alarmManager.cancel(pending)
         scheduleAlarmClock(triggerAtMillis, alarm.id, pending)
     }
 

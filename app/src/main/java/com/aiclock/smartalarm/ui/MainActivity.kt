@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.aiclock.smartalarm.R
 import com.aiclock.smartalarm.alarm.AlarmPlaybackManager
+import com.aiclock.smartalarm.alarm.AlarmRestoreManager
 import com.aiclock.smartalarm.alarm.AlarmScheduler
 import com.aiclock.smartalarm.alarm.NotificationHelper
 import com.aiclock.smartalarm.data.AlarmStore
@@ -98,6 +99,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        AlarmRestoreManager.restoreEnabledAlarms(this)
         refreshList()
     }
 

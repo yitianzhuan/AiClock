@@ -3,25 +3,27 @@ package com.aiclock.smartalarm.alarm
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import com.aiclock.smartalarm.data.AlarmStore
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val action = intent.action ?: return
         val isBoot = action == Intent.ACTION_BOOT_COMPLETED
         val isLockedBoot = action == Intent.ACTION_LOCKED_BOOT_COMPLETED
-        if (isBoot == false && isLockedBoot == false) {
+        val isPackageReplaced = action == Intent.ACTION_MY_PACKAGE_REPLACED
+        val isDateChanged = action == Intent.ACTION_DATE_CHANGED
+        val isTimeChanged = action == Intent.ACTION_TIME_CHANGED
+        val isTimeZoneChanged = action == Intent.ACTION_TIMEZONE_CHANGED
+        if (
+            isBoot == false &&
+            isLockedBoot == false &&
+            isPackageReplaced == false &&
+            isDateChanged == false &&
+            isTimeChanged == false &&
+            isTimeZoneChanged == false
+        ) {
             return
         }
 
-        NotificationHelper.ensureChannels(context)
-
-        val scheduler = AlarmScheduler(context)
-        val store = AlarmStore(context)
-        store.getAll().forEach { alarm ->
-            if (alarm.enabled) {
-                scheduler.schedule(alarm)
-            }
-        }
+        AlarmRestoreManager.restoreEnabledAlarms(context)
     }
 }

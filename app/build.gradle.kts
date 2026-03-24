@@ -25,8 +25,8 @@ android {
         applicationId = "com.aiclock.smartalarm"
         minSdk = 29
         targetSdk = 35
-        versionCode = 1015
-        versionName = "V1.015"
+        versionCode = 1016
+        versionName = "V1.016"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
